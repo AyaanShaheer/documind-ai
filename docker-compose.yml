@@ -1,0 +1,24 @@
+
+services:
+  floci:
+    image: floci/floci:latest
+    container_name: documind-floci
+
+    ports:
+      - "127.0.0.1:4566:4566"
+
+    volumes:
+      - floci-data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock
+
+    environment:
+      FLOCI_STORAGE_MODE: hybrid
+      FLOCI_STORAGE_PERSISTENT_PATH: /app/data
+      FLOCI_SERVICES_UI_BIND_ADDRESS: "127.0.0.1"
+      FLOCI_SERVICES_SQS_ENDPOINT_STRATEGY: "aws"
+
+    restart: unless-stopped
+
+volumes:
+  floci-data:
+

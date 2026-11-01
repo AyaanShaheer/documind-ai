@@ -1,0 +1,53 @@
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfplan
+
+# Secrets and environment files
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Node
+node_modules/
+dist/
+
+# Local Floci data
+floci-data/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+*.log
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+
+# Node
+node_modules/
+dist/
+
+# Local Floci data
+floci-data/
+
+# OS
+.DS_Store

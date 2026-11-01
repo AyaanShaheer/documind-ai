@@ -1,0 +1,12 @@
+
+fastapi
+uvicorn[standard]
+boto3
+pydantic
+pydantic-settings
+python-multipart
+python-dotenv
+httpx
+pytest
+PyMuPDF
+python-docx
