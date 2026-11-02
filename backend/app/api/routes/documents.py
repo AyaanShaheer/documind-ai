@@ -7,13 +7,14 @@ from zipfile import BadZipFile, ZipFile
 
 from fastapi import (
     APIRouter,
+    Depends,
     File,
-    Header,
     HTTPException,
     UploadFile,
     status,
 )
 
+from app.core.auth import get_current_user_id
 from app.core.config import settings
 from app.schemas.document import DocumentUploadResponse
 from app.services.document_service import (
@@ -71,21 +72,8 @@ def validate_document(
 async def upload_document(
     file: UploadFile = File(...),
 
-    # Temporary development identity.
-    # Replace with Cognito JWT authentication later.
-    user_id: str = Header(
-        default="local-user",
-        alias="X-User-Id",
-    ),
+    user_id: str = Depends(get_current_user_id),
 ):
-
-    # Validate development user identifier
-    if not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", user_id):
-
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid user ID",
-        )
 
     # Validate filename
     original_filename = Path(

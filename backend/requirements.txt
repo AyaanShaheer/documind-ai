@@ -10,3 +10,6 @@ httpx
 pytest
 PyMuPDF
 python-docx
+sentence-transformers
+opensearch-py
+PyJWT[crypto]>=2.10,<3

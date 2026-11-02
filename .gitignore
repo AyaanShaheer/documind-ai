@@ -1,53 +1,44 @@
-# Terraform
-**/.terraform/*
-*.tfstate
-*.tfstate.*
-crash.log
-crash.*.log
-*.tfplan
-
-# Secrets and environment files
+# Environment files and secrets
 .env
 .env.*
 !.env.example
-
-# Python
-__pycache__/
-*.pyc
-.venv/
-
-# Node
-node_modules/
-dist/
-
-# Local Floci data
-floci-data/
-
-# Environment and secrets
-.env
-.env.*
-!.env.example
+*.pem
+*.key
+*access_token*
 
 # Python
 __pycache__/
 *.py[cod]
 .venv/
 .pytest_cache/
+.coverage
+htmlcov/
 *.log
+
+# Node
+node_modules/
+dist/
 
 # Terraform
 **/.terraform/
 *.tfstate
 *.tfstate.*
 *.tfplan
+*.tfvars
+!*.tfvars.example
 crash.log
+crash.*.log
 
-# Node
-node_modules/
-dist/
-
-# Local Floci data
+# Local runtime data
 floci-data/
+.cache/
+
+# Temporary backups and rollback copies
+*.bak
+*.backup
+*.pre-*
+*.pre_*
+migration-backup*
 
 # OS
 .DS_Store

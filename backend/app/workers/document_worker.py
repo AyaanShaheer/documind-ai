@@ -3,19 +3,34 @@ import json
 import logging
 
 from datetime import datetime, timezone
-from io import BytesIO
 from urllib.parse import unquote_plus
 
 import pymupdf
+
 from docx import Document
+from io import BytesIO
 
 from botocore.exceptions import BotoCoreError, ClientError
 
 from app.core.config import settings
+
 from app.services.aws_clients import (
     get_s3_client,
     get_sqs_client,
     get_dynamodb_resource,
+)
+
+from app.services.embedding_service import (
+    get_embedding_model,
+    embed_texts,
+)
+
+from app.services.chunking import (
+    chunk_pages_by_tokens,
+)
+
+from app.services.vector_store import (
+    index_document_chunks,
 )
 
 
@@ -27,18 +42,22 @@ logging.basicConfig(
 logger = logging.getLogger("documind-worker")
 
 
-TERMINAL_STATUSES = {"EXTRACTED", "NEEDS_OCR"}
+TERMINAL_STATUSES = {
+    "INDEXED",
+    "NEEDS_OCR",
+}
 
 
 def utc_now():
     return datetime.now(timezone.utc).isoformat()
 
 
-def extract_pdf(content: bytes):
+def extract_pdf_pages(content: bytes) -> tuple[list[dict], int]:
     """
-    Extract text from a PDF document.
-    Returns extracted text and page count.
+    Extract PDF text while preserving page numbers.
     """
+
+    pages = []
 
     with pymupdf.open(
         stream=content,
@@ -47,17 +66,22 @@ def extract_pdf(content: bytes):
 
         page_count = len(pdf)
 
-        text = "\n".join(
-            page.get_text("text")
-            for page in pdf
-        )
+        for index, page in enumerate(pdf):
 
-    return text.strip(), page_count
+            pages.append({
+                "page_number": index + 1,
+                "text": page.get_text("text"),
+            })
+
+    return pages, page_count
 
 
-def extract_docx(content: bytes):
+def extract_docx_pages(content: bytes) -> list[dict]:
     """
-    Extract paragraphs and table contents from DOCX.
+    Extract DOCX paragraphs and tables.
+
+    DOCX does not have stable page numbers without
+    rendering, so page_number is None.
     """
 
     document = Document(BytesIO(content))
@@ -80,7 +104,12 @@ def extract_docx(content: bytes):
 
             sections.append(" | ".join(cells))
 
-    return "\n".join(sections).strip()
+    text = "\n".join(sections).strip()
+
+    return [{
+        "page_number": None,
+        "text": text,
+    }]
 
 
 def update_failed_status(
@@ -89,10 +118,6 @@ def update_failed_status(
     document_id,
     error,
 ):
-    """
-    Record processing failure in DynamoDB.
-    """
-
     try:
 
         table.update_item(
@@ -121,15 +146,34 @@ def update_failed_status(
     except (BotoCoreError, ClientError):
 
         logger.exception(
-            "Could not update failure status for %s",
-            document_id,
+            "Could not update failed status"
         )
 
 
+def mark_needs_ocr(table, key):
+
+    table.update_item(
+        Key=key,
+
+        UpdateExpression=(
+            "SET #status = :status, "
+            "processing_note = :note, "
+            "updated_at = :updated"
+        ),
+
+        ExpressionAttributeNames={
+            "#status": "status",
+        },
+
+        ExpressionAttributeValues={
+            ":status": "NEEDS_OCR",
+            ":note": "No extractable text found",
+            ":updated": utc_now(),
+        },
+    )
+
+
 def process_s3_record(record):
-    """
-    Process one S3 ObjectCreated event.
-    """
 
     s3 = get_s3_client()
 
@@ -144,7 +188,7 @@ def process_s3_record(record):
     if not event_name.startswith("ObjectCreated:"):
 
         logger.info(
-            "Ignoring unsupported S3 event: %s",
+            "Ignoring unsupported event: %s",
             event_name,
         )
 
@@ -154,21 +198,20 @@ def process_s3_record(record):
 
     bucket_name = s3_data["bucket"]["name"]
 
-    raw_key = s3_data["object"]["key"]
-
-    # S3 event keys are URL encoded.
-    object_key = unquote_plus(raw_key)
+    object_key = unquote_plus(
+        s3_data["object"]["key"]
+    )
 
     if bucket_name != settings.s3_bucket_name:
 
         logger.warning(
-            "Ignoring unexpected bucket: %s",
+            "Unexpected bucket: %s",
             bucket_name,
         )
 
         return
 
-    # Expected format:
+    # Expected:
     # incoming/{user_id}/{document_id}/{filename}
 
     parts = object_key.split("/", 3)
@@ -180,7 +223,7 @@ def process_s3_record(record):
     ):
 
         logger.warning(
-            "Ignoring object outside DocuMind key structure: %s",
+            "Ignoring object outside DocuMind structure: %s",
             object_key,
         )
 
@@ -202,24 +245,18 @@ def process_s3_record(record):
 
     if not item:
 
-        # A valid upload event can arrive before the
-        # API's DynamoDB write becomes visible.
-        # Retry instead of incorrectly acknowledging it.
-
         raise RuntimeError(
-            f"Metadata not available for document {document_id}"
+            f"Metadata unavailable for {document_id}"
         )
 
     if item.get("status") in TERMINAL_STATUSES:
 
         logger.info(
-            "Document already processed; skipping duplicate: %s",
+            "Document already indexed; skipping: %s",
             document_id,
         )
 
         return
-
-    now = utc_now()
 
     table.update_item(
         Key=key,
@@ -234,15 +271,15 @@ def process_s3_record(record):
 
         ExpressionAttributeValues={
             ":status": "PROCESSING",
-            ":updated": now,
+            ":updated": utc_now(),
         },
     )
 
     try:
 
-        # ---------------------------------
-        # Download document from S3
-        # ---------------------------------
+        # --------------------------------
+        # 1. Download document
+        # --------------------------------
 
         logger.info(
             "Downloading document: %s",
@@ -256,70 +293,48 @@ def process_s3_record(record):
 
         content = obj["Body"].read()
 
-        # ---------------------------------
-        # Extract document content
-        # ---------------------------------
+        # --------------------------------
+        # 2. Extract text
+        # --------------------------------
 
         if filename.lower().endswith(".pdf"):
 
-            extracted_text, page_count = extract_pdf(
+            pages, page_count = extract_pdf_pages(
                 content
             )
 
         elif filename.lower().endswith(".docx"):
 
-            extracted_text = extract_docx(content)
+            pages = extract_docx_pages(content)
 
             page_count = None
 
         else:
 
             raise ValueError(
-                f"Unsupported document format: {filename}"
+                f"Unsupported file: {filename}"
             )
 
-        logger.info(
-            "Extracted %s characters from %s",
-            len(extracted_text),
-            document_id,
-        )
+        extracted_text = "\n".join(
+            page["text"]
+            for page in pages
+            if page["text"].strip()
+        ).strip()
 
-        # ---------------------------------
-        # Handle scanned or empty documents
-        # ---------------------------------
+        logger.info(
+            "Extracted %s characters",
+            len(extracted_text),
+        )
 
         if not extracted_text:
 
-            table.update_item(
-                Key=key,
-
-                UpdateExpression=(
-                    "SET #status = :status, "
-                    "processing_note = :note, "
-                    "updated_at = :updated"
-                ),
-
-                ExpressionAttributeNames={
-                    "#status": "status",
-                },
-
-                ExpressionAttributeValues={
-                    ":status": "NEEDS_OCR",
-                    ":note": "No extractable text found",
-                    ":updated": utc_now(),
-                },
-            )
-
-            logger.warning(
-                "Document requires OCR: %s",
-                document_id,
-            )
+            mark_needs_ocr(table, key)
 
             return
 
-        # ---------------------------------
-        # Store extracted text in S3
-        # ---------------------------------
+        # --------------------------------
+        # 3. Save extracted text in S3
+        # --------------------------------
 
         extracted_key = (
             f"processed/{user_id}/"
@@ -333,24 +348,93 @@ def process_s3_record(record):
             ContentType="text/plain; charset=utf-8",
         )
 
-        # ---------------------------------
-        # Update DynamoDB metadata
-        # ---------------------------------
+        # --------------------------------
+        # 4. Chunk the document
+        # --------------------------------
+
+        model = get_embedding_model()
+
+        chunks = chunk_pages_by_tokens(
+            pages=pages,
+            tokenizer=model.tokenizer,
+            max_tokens=220,
+            overlap_tokens=30,
+        )
+
+        if not chunks:
+
+            mark_needs_ocr(table, key)
+
+            return
+
+        logger.info(
+            "Generated %s document chunks",
+            len(chunks),
+        )
+
+        # --------------------------------
+        # 5. Generate embeddings
+        # --------------------------------
+
+        chunk_texts = [
+            chunk["text"]
+            for chunk in chunks
+        ]
+
+        embeddings = embed_texts(chunk_texts)
+
+        logger.info(
+            "Generated %s embeddings",
+            len(embeddings),
+        )
+
+        # --------------------------------
+        # 6. Store vectors in OpenSearch
+        # --------------------------------
+
+        indexed_count = index_document_chunks(
+            user_id=user_id,
+            document_id=document_id,
+            filename=filename,
+            chunks=chunks,
+            embeddings=embeddings,
+        )
+
+        if indexed_count != len(chunks):
+
+            raise RuntimeError(
+                f"Indexed {indexed_count} of {len(chunks)} chunks"
+            )
+
+        # --------------------------------
+        # 7. Update DynamoDB
+        # --------------------------------
+
+        now = utc_now()
 
         update_expression = (
             "SET #status = :status, "
             "extracted_text_s3_key = :text_key, "
             "character_count = :char_count, "
+            "chunk_count = :chunk_count, "
+            "embedding_model = :model, "
+            "embedding_dimension = :dimension, "
+            "opensearch_index = :index_name, "
             "updated_at = :updated, "
-            "processing_completed_at = :completed"
+            "processing_completed_at = :completed "
+            "REMOVE error_message, processing_note"
         )
 
         values = {
-            ":status": "EXTRACTED",
+            ":status": "INDEXED",
             ":text_key": extracted_key,
             ":char_count": len(extracted_text),
-            ":updated": utc_now(),
-            ":completed": utc_now(),
+            ":chunk_count": len(chunks),
+            ":model": settings.embedding_model,
+            ":dimension": settings.embedding_dimension,
+            ":index_name": settings.opensearch_index_name,
+            ":updated": now,
+            ":completed": now,
         }
 
         if page_count is not None:
@@ -358,10 +442,6 @@ def process_s3_record(record):
             update_expression += ", page_count = :pages"
 
             values[":pages"] = page_count
-
-        update_expression += (
-            " REMOVE error_message, processing_note"
-        )
 
         table.update_item(
             Key=key,
@@ -376,10 +456,9 @@ def process_s3_record(record):
         )
 
         logger.info(
-            "Document successfully processed: %s",
+            "Document successfully indexed: %s",
             document_id,
         )
-        
 
     except Exception as exc:
 
@@ -399,19 +478,13 @@ def process_s3_record(record):
 
 
 def handle_message(message):
-    """
-    Handle one SQS message containing S3 events.
-    """
 
     body = json.loads(message["Body"])
-
-    # S3 sends an initial TestEvent when the
-    # bucket notification configuration is created.
 
     if body.get("Event") == "s3:TestEvent":
 
         logger.info(
-            "S3 TestEvent received and acknowledged"
+            "S3 TestEvent received"
         )
 
         return
@@ -421,7 +494,7 @@ def handle_message(message):
     if not isinstance(records, list):
 
         raise ValueError(
-            "Message does not contain a valid S3 Records array"
+            "Invalid S3 notification payload"
         )
 
     for record in records:
@@ -430,9 +503,6 @@ def handle_message(message):
 
 
 def run_worker():
-    """
-    Continuously poll SQS and process documents.
-    """
 
     sqs = get_sqs_client()
 
@@ -442,14 +512,9 @@ def run_worker():
 
     queue_url = response["QueueUrl"]
 
-    logger.info(
-        "DocuMind worker started"
-    )
+    logger.info("DocuMind indexing worker started")
 
-    logger.info(
-        "Connected to queue: %s",
-        queue_url,
-    )
+    logger.info("Queue: %s", queue_url)
 
     while True:
 
@@ -457,13 +522,10 @@ def run_worker():
             QueueUrl=queue_url,
             MaxNumberOfMessages=5,
             WaitTimeSeconds=10,
-            VisibilityTimeout=120,
+            VisibilityTimeout=300,
         )
 
         messages = response.get("Messages", [])
-
-        if not messages:
-            continue
 
         for message in messages:
 
@@ -472,13 +534,11 @@ def run_worker():
             try:
 
                 logger.info(
-                    "Received SQS message: %s",
+                    "Received message: %s",
                     message["MessageId"],
                 )
 
                 handle_message(message)
-
-                # Acknowledge only after successful processing.
 
                 sqs.delete_message(
                     QueueUrl=queue_url,
@@ -486,19 +546,14 @@ def run_worker():
                 )
 
                 logger.info(
-                    "SQS message acknowledged: %s",
+                    "Message acknowledged: %s",
                     message["MessageId"],
                 )
 
             except Exception:
 
-                # Do not delete failed messages.
-                # SQS will make them visible again
-                # after the visibility timeout.
-
                 logger.exception(
-                    "Message processing failed; "
-                    "leaving message for retry"
+                    "Processing failed. Message will be retried."
                 )
 
 
@@ -510,7 +565,5 @@ if __name__ == "__main__":
 
     except KeyboardInterrupt:
 
-        logger.info(
-            "DocuMind worker stopped"
-        )
+        logger.info("DocuMind worker stopped")
 

@@ -27,9 +27,10 @@ provider "aws" {
 
   # Route AWS API requests to Floci
   endpoints {
-    s3       = var.local_endpoint
-    sqs      = var.local_endpoint
-    dynamodb = var.local_endpoint
+    s3         = var.local_endpoint
+    sqs        = var.local_endpoint
+    dynamodb   = var.local_endpoint
+    opensearch = var.local_endpoint
   }
 }
 
