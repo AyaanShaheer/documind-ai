@@ -1,142 +1,287 @@
-# DocuMind AI
+# 🧠 DocuMind AI
+### Turn your documents into an intelligent, searchable knowledge base.
+
+**Upload. Process. Retrieve. Understand.**
+
+DocuMind AI is a cloud-native document intelligence platform that transforms static documents into a private, searchable knowledge base using **Retrieval-Augmented Generation (RAG)**.
+
+Upload your PDFs and DOCX files, let the platform asynchronously process and index their contents, and interact with your documents through a conversational AI assistant that provides context-aware, source-backed answers.
+
+Instead of searching through hundreds of pages manually, simply ask a question.
+
+---
 
 <p align="center">
-  **Turn your documents into a private, searchable knowledge base.**
-  
-  Upload documents, retrieve relevant passages, and ask questions in natural language with source-backed AI answers.
+
+![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-Python-009688?style=for-the-badge&logo=fastapi&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+
+![AWS](https://img.shields.io/badge/AWS-Cloud_Architecture-232F3E?style=for-the-badge&logo=amazonaws&logoColor=white)
+![OpenSearch](https://img.shields.io/badge/OpenSearch-Vector_Search-005EB8?style=for-the-badge&logo=opensearch&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Terraform](https://img.shields.io/badge/Terraform-IaC-844FBA?style=for-the-badge&logo=terraform&logoColor=white)
+
 </p>
 
 <p align="center">
-  ![React](https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white)
-  ![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white)
-  ![FastAPI](https://img.shields.io/badge/FastAPI-Python-009688?logo=fastapi&logoColor=white)
-  ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
-  ![AWS](https://img.shields.io/badge/Architecture-AWS--Native-232F3E?logo=amazonaws&logoColor=white)
-  ![Status](https://img.shields.io/badge/Status-Local%20Docker%20MVP-success)
+  <img src="https://img.shields.io/badge/Development-Local_Docker_MVP-success?style=flat-square" />
+  <img src="https://img.shields.io/badge/AI-RAG_Powered-blueviolet?style=flat-square" />
+  <img src="https://img.shields.io/badge/Architecture-Event--Driven-orange?style=flat-square" />
 </p>
 
 ---
 
-## Overview
+## ✨ The Problem
 
-**DocuMind AI** is a cloud-native document intelligence and Retrieval-Augmented Generation (RAG) platform designed to transform static documents into an interactive knowledge base.
+Traditional document management systems are good at storing files, but not necessarily at helping people understand them.
 
-Users can securely upload documents, process them asynchronously, generate vector embeddings, and interact with their knowledge base through a conversational AI interface.
+Consider having hundreds of PDFs containing technical documentation, research papers, reports, or business documents.
 
-Instead of manually searching through hundreds of pages, users can ask natural-language questions and receive contextual answers grounded in retrieved document content, with source references.
+Finding a specific answer requires manually opening files, searching for keywords, and connecting information across multiple documents.
 
-The application combines document ingestion, asynchronous processing, vector search, and LLM-powered question answering in one workspace.
+**DocuMind AI addresses this problem by combining:**
 
-**Current status:** Working local Docker MVP. Public AWS production deployment is planned but has not yet been completed.
+- Intelligent document ingestion.
+- Asynchronous document processing.
+- Semantic vector search.
+- Large Language Model (LLM) inference.
+- Retrieval-Augmented Generation.
+- Source-backed conversational answers.
 
-## Key Features
+The result is a document intelligence platform where your knowledge becomes accessible through natural language.
 
-- **Secure Authentication:** Cognito-compatible authentication with JWT verification and user-scoped API access.
-- **Document Upload:** Upload PDF and DOCX documents through a React-based interface.
-- **Cloud Object Storage:** Store original documents in Amazon S3-compatible storage.
-- **Asynchronous Processing:** SQS-based background processing using a dedicated Python worker.
-- **Document Extraction:** Extract text from PDF and DOCX documents.
-- **Intelligent Chunking:** Split extracted text into model-sized chunks while retaining document and page references.
-- **Vector Embeddings:** Generate 384-dimensional embeddings using Sentence Transformers.
-- **Semantic Search:** Retrieve relevant document chunks using OpenSearch vector search.
-- **RAG-powered Chat:** Ask questions about uploaded documents using a local LLM.
-- **Source-backed Answers:** Display retrieved document names and page references alongside AI responses.
-- **Live Document Library:** View uploaded documents, processing statuses, and indexing statistics.
-- **Dockerized Deployment:** Run the frontend, backend, and worker as containerized services.
+## 🚀 Key Features
 
-## Architecture
+| Feature | Description |
+|---|---|
+| 🔐 Authentication | Cognito-compatible authentication with JWT verification |
+| 📄 Document Upload | Upload PDF and DOCX documents through the web interface |
+| ☁️ Object Storage | Store original documents using S3-compatible storage |
+| ⚡ Async Processing | Process documents using an SQS-based background worker |
+| 📝 Text Extraction | Extract content from PDF and DOCX files |
+| ✂️ Intelligent Chunking | Divide extracted content into smaller, searchable passages |
+| 🧬 Vector Embeddings | Generate 384-dimensional embeddings using Sentence Transformers |
+| 🔎 Semantic Search | Retrieve relevant passages through OpenSearch |
+| 🤖 AI Assistant | Ask natural-language questions using RAG |
+| 📚 Source References | Display document names and page references alongside answers |
+| 📊 Document Library | Track document uploads, processing status, and indexing statistics |
+| 🐳 Containerized | Run frontend, backend, and worker using Docker Compose |
+
+## 🏗️ System Architecture
+
+DocuMind AI follows an event-driven, service-oriented architecture.
+
+The application separates the user-facing API from resource-intensive document processing, allowing ingestion and question answering to operate independently.
+
+### High-Level Architecture
 
 ```mermaid
 flowchart TB
-    User["User / Browser"]
-    UI["React + TypeScript"]
-    Nginx["Nginx"]
+    U["👤 User"]
+    FE["React + TypeScript"]
+    NG["Nginx"]
     API["FastAPI Backend"]
-    Auth["Cognito Authentication"]
+    AUTH["Cognito Authentication"]
+
     S3[("Amazon S3")]
     SQS[["Amazon SQS"]]
     DDB[("Amazon DynamoDB")]
-    Worker["Document Processing Worker"]
-    Extract["Text Extraction"]
-    Chunk["Document Chunking"]
-    Embed["Sentence Transformer Embeddings"]
+
+    WORKER["Document Processing Worker"]
+    EXTRACT["Text Extraction"]
+    CHUNK["Document Chunking"]
+    EMBED["Sentence Transformer"]
+
     OS[("OpenSearch Vector Index")]
+
     RAG["RAG Service"]
     LLM["Ollama / Qwen 2.5"]
 
-    User --> UI
-    UI --> Nginx
-    Nginx --> API
-    API <--> Auth
+    U --> FE
+    FE --> NG
+    NG --> API
+
+    API <--> AUTH
     API --> S3
     API --> DDB
+
     S3 --> SQS
-    SQS --> Worker
-    Worker --> S3
-    Worker --> Extract
-    Extract --> Chunk
-    Chunk --> Embed
-    Embed --> OS
-    Worker --> DDB
+    SQS --> WORKER
+
+    WORKER --> S3
+    WORKER --> EXTRACT
+    EXTRACT --> CHUNK
+    CHUNK --> EMBED
+    EMBED --> OS
+
+    WORKER --> DDB
+
     API --> RAG
     RAG --> OS
     RAG --> LLM
     LLM --> RAG
     RAG --> API
-    API --> UI
+    API --> FE
 ```
 
-The architecture uses AWS-compatible services locally through Floci. The production AWS architecture is planned.
+**Architecture principle:** Document ingestion should not block user-facing API requests. Background processing handles extraction, chunking, embedding generation, and indexing independently.
 
-## Document Processing Workflow
+### Architecture Components
 
-1. **Authentication:** The user signs in through the Cognito-compatible authentication service.
-2. **Upload:** The frontend sends a document to FastAPI with a Cognito access token.
-3. **Validation:** FastAPI validates document type, content, and file size.
-4. **Storage:** The original document is stored in S3.
-5. **Metadata:** Document ownership, metadata, and processing status are recorded in DynamoDB.
-6. **Queueing:** An S3 object-created notification sends a message to SQS.
-7. **Extraction:** The background worker downloads the document and extracts its text.
-8. **Chunking:** Extracted text is divided into smaller chunks.
-9. **Embedding:** Sentence Transformers generates vector embeddings.
-10. **Indexing:** Document chunks and their metadata are indexed in OpenSearch.
-11. **Status Update:** DynamoDB records the processing result and chunk count.
-
-## RAG Question-Answering Workflow
-
-1. The user enters a natural-language question in the AI Assistant.
-2. FastAPI authenticates the request and identifies the user.
-3. The retrieval service searches the user's authorized document collection.
-4. Relevant chunks are retrieved from OpenSearch.
-5. Retrieved context is supplied to the LLM.
-6. The LLM generates a contextual response.
-7. FastAPI returns the answer, model information, and retrieved sources.
-8. The React frontend displays the response and source references.
-
-## Technology Stack
-
-| Component | Technology | Purpose |
+| Layer | Responsibility | Technology |
 |---|---|---|
-| Frontend | React, TypeScript | User interface |
-| Build Tool | Vite | Frontend development and production builds |
-| Styling | Tailwind CSS | Responsive UI |
-| Icons | Lucide React | UI icons |
-| Backend | Python 3.12, FastAPI | REST API |
-| Validation | Pydantic | Request and configuration validation |
-| Authentication | Amazon Cognito, JWT, PyJWT | User authentication and authorization |
-| Object Storage | Amazon S3 | Document storage |
-| Messaging | Amazon SQS | Asynchronous processing |
-| Metadata | Amazon DynamoDB | Document metadata and ownership |
-| Vector Database | OpenSearch | Vector indexing and retrieval |
-| Embedding Model | all-MiniLM-L6-v2 | 384-dimensional embeddings |
-| LLM | Qwen 2.5 0.5B Instruct | Local AI inference |
-| LLM Runtime | Ollama | Local model serving |
-| AWS Emulation | Floci | Local AWS-compatible services |
-| Containerization | Docker, Docker Compose | Application packaging |
-| Web Server | Nginx | Frontend hosting and API reverse proxy |
-| Infrastructure | Terraform | Infrastructure provisioning |
+| Presentation | User interface and document management | React, TypeScript |
+| Reverse Proxy | Frontend hosting and API routing | Nginx |
+| API Layer | Authentication, uploads, search, and chat | FastAPI |
+| Identity | Authentication and token validation | Cognito-compatible service |
+| Object Storage | Original and extracted documents | Amazon S3 |
+| Messaging | Asynchronous processing events | Amazon SQS |
+| Metadata | Document ownership and processing status | DynamoDB |
+| Processing | Extraction, chunking, and embeddings | Python Worker |
+| Vector Search | Semantic retrieval | OpenSearch |
+| Embeddings | Text-to-vector conversion | Sentence Transformers |
+| AI Inference | Contextual answer generation | Ollama / Qwen 2.5 |
 
-## Repository Structure
+**Local development:** AWS-compatible services are used through Floci. OpenSearch and Ollama are provisioned in the local environment.
+
+**Production direction:** The architecture is designed around AWS services, with production deployment planned separately.
+
+---
+
+## 🔄 How It Works
+
+DocuMind AI consists of two primary pipelines:
+
+1. Document ingestion and indexing.
+2. Retrieval-Augmented Generation and question answering.
+
+### 1. Document Ingestion Pipeline
+
+When a user uploads a document, the platform processes it asynchronously.
+
+```mermaid
+flowchart TD
+    A["User Uploads PDF / DOCX"]
+    B["FastAPI Validates Request"]
+    C["Store Original Document in S3"]
+    D["Save Metadata in DynamoDB"]
+    E["S3 Event Notification"]
+    F["SQS Processing Queue"]
+    G["Background Worker"]
+    H["Extract Document Text"]
+    I["Split into Chunks"]
+    J["Generate Vector Embeddings"]
+    K["Index in OpenSearch"]
+    L["Update Processing Status"]
+
+    A --> B --> C
+    B --> D
+    C --> E --> F --> G
+    G --> H --> I --> J --> K
+    K --> L
+```
+
+**Processing sequence:**
+
+1. User authenticates through the Cognito-compatible authentication service.
+2. Frontend sends the document to FastAPI.
+3. Backend validates the document format, content, and file size.
+4. Original document is stored in S3.
+5. Document metadata and ownership information are recorded in DynamoDB.
+6. An S3 object-created notification triggers an SQS message.
+7. Background worker consumes the processing message.
+8. Worker downloads and extracts document text.
+9. Extracted content is divided into smaller chunks.
+10. Sentence Transformers generates vector embeddings.
+11. Document chunks and metadata are indexed in OpenSearch.
+12. DynamoDB is updated with the final processing status and chunk count.
+
+### 2. RAG Question-Answering Pipeline
+
+Once documents are indexed, users can ask questions through the AI Assistant.
+
+```mermaid
+flowchart TD
+    A["User Asks a Question"]
+    B["FastAPI Authentication"]
+    C["Identify Authorized User"]
+    D["Semantic Vector Search"]
+    E["Retrieve Relevant Chunks"]
+    F["Build Context"]
+    G["LLM Inference"]
+    H["Generate Answer"]
+    I["Attach Source References"]
+    J["Display Answer in React"]
+
+    A --> B --> C --> D
+    D --> E --> F --> G
+    G --> H --> I --> J
+```
+
+**Retrieval sequence:**
+
+1. User submits a natural-language question.
+2. FastAPI authenticates the request.
+3. Backend identifies the authenticated user.
+4. Retrieval service searches the user's authorized document collection.
+5. OpenSearch returns the most relevant document chunks.
+6. Retrieved context is supplied to the language model.
+7. The LLM generates a contextual answer.
+8. Backend returns the response, model information, and source references.
+9. React displays the answer alongside document names and page references.
+
+**Why RAG?**
+
+Rather than relying exclusively on the LLM's pretrained knowledge, RAG grounds responses in the content retrieved from the user's documents.
+
+---
+
+## 🛠️ Technology Stack
+
+This project combines modern application development, cloud infrastructure, distributed processing, and generative AI.
+
+### Frontend
+
+| Technology | Purpose |
+|---|---|
+| React 19 | Component-based UI |
+| TypeScript 6 | Type-safe development |
+| Vite | Development server and build tooling |
+| Tailwind CSS | Responsive styling |
+| Lucide React | Icons |
+
+### Backend and AI
+
+| Technology | Purpose |
+|---|---|
+| Python 3.12 | Backend and processing |
+| FastAPI | REST API development |
+| Pydantic | Request and configuration validation |
+| Sentence Transformers | Vector embedding generation |
+| all-MiniLM-L6-v2 | 384-dimensional embedding model |
+| Ollama | Local LLM runtime |
+| Qwen 2.5 0.5B Instruct | Local language model |
+| OpenSearch | Vector indexing and retrieval |
+
+### AWS and Infrastructure
+
+| Technology | Purpose |
+|---|---|
+| Amazon Cognito | Authentication architecture |
+| Amazon S3 | Object storage |
+| Amazon SQS | Message queue |
+| Amazon DynamoDB | Metadata storage |
+| Floci | Local AWS-compatible services |
+| Terraform | Infrastructure as Code |
+| Docker | Containerization |
+| Docker Compose | Local orchestration |
+| Nginx | Reverse proxy and frontend hosting |
+
+---
+
+## 📁 Repository Structure
 
 ```text
 documind-ai/
@@ -156,6 +301,7 @@ documind-ai/
 │   │   │   └── config.py
 │   │   │
 │   │   ├── schemas/
+│   │   │
 │   │   ├── services/
 │   │   │   ├── chunking.py
 │   │   │   ├── document_service.py
@@ -199,19 +345,30 @@ documind-ai/
 └── README.md
 ```
 
-## Getting Started
+---
+
+## ⚡ Getting Started
+
+Follow these instructions to run the local Docker MVP.
 
 ### Prerequisites
 
-- Docker Desktop with WSL 2 integration.
-- Docker Compose.
-- Git.
-- Ollama installed on the host.
-- A local Floci environment.
-- OpenSearch provisioned and accessible.
-- Local S3 bucket, SQS queues, DynamoDB table, and Cognito-compatible user pool configured.
+Ensure the following tools and services are available:
 
-### 1. Clone the repository
+| Requirement | Purpose |
+|---|---|
+| Docker Desktop | Container runtime |
+| Docker Compose | Multi-container orchestration |
+| Git | Source code management |
+| Python 3.12 | Backend development |
+| Node.js and npm | Frontend development |
+| Ollama | Local LLM inference |
+| Floci | Local AWS-compatible services |
+| OpenSearch | Vector indexing and retrieval |
+
+You will also need the local S3 bucket, SQS queues, DynamoDB table, and Cognito-compatible user pool configured.
+
+### Step 1. Clone the repository
 
 ```bash
 git clone https://github.com/AyaanShaheer/documind-ai.git
@@ -219,7 +376,7 @@ git clone https://github.com/AyaanShaheer/documind-ai.git
 cd documind-ai
 ```
 
-### 2. Configure environment variables
+### Step 2. Configure environment variables
 
 Create the backend environment file:
 
@@ -227,51 +384,62 @@ Create the backend environment file:
 cp .env.example backend/.env
 ```
 
-Update `backend/.env` with your local configuration.
+Update `backend/.env` with your local environment configuration.
 
-Important variables include:
+Example configuration:
 
 ```env
+# Application
 APP_NAME=DocuMind AI
 APP_ENV=local
 
+# AWS-compatible configuration
 AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=test
 AWS_SECRET_ACCESS_KEY=test
 
 FLOCI_ENDPOINT=http://localhost:4566
 
+# Object Storage
 S3_BUCKET_NAME=documind-documents
+
+# Metadata
 DYNAMODB_TABLE_NAME=documind-metadata
 
+# Messaging
 SQS_PROCESSING_QUEUE_NAME=documind-processing
 SQS_DLQ_NAME=documind-processing-dlq
 
+# Authentication
 COGNITO_USER_POOL_ID=your-user-pool-id
 COGNITO_APP_CLIENT_ID=your-app-client-id
 COGNITO_ISSUER=http://localhost:4566/your-user-pool-id
 COGNITO_JWKS_URL=http://localhost:4566/your-user-pool-id/.well-known/jwks.json
 
+# Embeddings
 EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
 EMBEDDING_DIMENSION=384
 
+# OpenSearch
 OPENSEARCH_HOST=localhost
 OPENSEARCH_PORT=9400
 OPENSEARCH_INDEX_NAME=documind-chunks
 
+# LLM
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=qwen2.5:0.5b-instruct
 
+# RAG
 RAG_TOP_K=5
 ```
 
-These values are examples for the local environment. Use the actual IDs and configuration from your local setup.
+> These are example local configuration values. Replace identifiers and endpoints with those from your actual environment.
 
-**Never commit `.env` files, passwords, API keys, access tokens, or other secrets.**
+**Security:** Never commit `.env` files, credentials, API keys, access tokens, or other secrets to Git.
 
-### 3. Prepare Ollama
+### Step 3. Prepare Ollama
 
-Pull the configured local model:
+Pull the configured model:
 
 ```bash
 ollama pull qwen2.5:0.5b-instruct
@@ -279,7 +447,7 @@ ollama pull qwen2.5:0.5b-instruct
 
 Ensure Ollama is running and accessible on port `11434`.
 
-### 4. Start the application
+### Step 4. Start the application
 
 From the project root:
 
@@ -287,58 +455,80 @@ From the project root:
 docker compose up --build -d
 ```
 
-Check the containers:
+Check running containers:
 
 ```bash
 docker compose ps
 ```
 
-View logs:
+### Step 5. Inspect application logs
+
+Backend:
 
 ```bash
 docker compose logs -f backend
+```
+
+Document worker:
+
+```bash
 docker compose logs -f worker
+```
+
+Frontend:
+
+```bash
 docker compose logs -f frontend
 ```
 
-### 5. Access DocuMind AI
+### Step 6. Access the application
+
+Once the required services are running:
 
 | Service | URL |
 |---|---|
-| Frontend | http://localhost:8080 |
-| FastAPI | http://localhost:8000 |
-| FastAPI Swagger Documentation | http://localhost:8000/docs |
+| DocuMind AI Frontend | http://localhost:8080 |
+| FastAPI Backend | http://localhost:8000 |
+| Swagger API Documentation | http://localhost:8000/docs |
 | Floci | http://localhost:4566 |
 | OpenSearch | http://localhost:9400 |
 | Ollama | http://localhost:11434 |
 
 Sign in using a user configured in your local Cognito-compatible user pool.
 
-### 6. Stop and restart
+---
 
-Stop containers without deleting persistent data:
+## 🔧 Application Management
+
+### Stop the application
 
 ```bash
 docker compose stop
 ```
 
-Restart:
+### Restart the application
 
 ```bash
 docker compose up -d
 ```
 
-To remove containers and the Compose network while preserving named volumes:
+### Remove containers and networks
 
 ```bash
 docker compose down
 ```
 
-Avoid `docker compose down -v` unless you intentionally want to delete persistent volumes and their data.
+This preserves named volumes.
 
-## Running in Development Mode
+**Warning:** Avoid `docker compose down -v` unless you intentionally want to delete persistent volumes and their data.
 
-### Backend
+---
+
+## 💻 Running in Development Mode
+
+You can also run individual application components outside Docker.
+
+### Backend API
 
 ```bash
 cd backend
@@ -352,9 +542,9 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### Document Worker
+### Document Processing Worker
 
-In a separate terminal:
+Open another terminal:
 
 ```bash
 cd backend
@@ -366,7 +556,7 @@ python -m app.workers.document_worker
 
 ### Frontend
 
-In another terminal:
+Open another terminal:
 
 ```bash
 cd frontend
@@ -376,30 +566,38 @@ npm install
 npm run dev -- --host 0.0.0.0
 ```
 
-Open:
+Access the frontend:
 
+```text
 http://localhost:5173
+```
 
 The Vite development proxy forwards API requests to FastAPI on port `8000`.
 
-## API Endpoints
+---
+
+## 🔌 API Reference
+
+The backend exposes REST endpoints for authentication, document management, semantic search, and conversational AI.
+
+### Available Endpoints
 
 | Method | Endpoint | Authentication | Description |
 |---|---|---|---|
-| GET | `/api/v1/health` | Public | Health check |
+| GET | `/api/v1/health` | Public | Application health check |
 | POST | `/api/v1/auth/login` | Public | Authenticate user |
-| POST | `/api/v1/documents/upload` | Required | Upload a document |
-| GET | `/api/v1/documents/` | Required | List authenticated user's documents |
+| POST | `/api/v1/documents/upload` | Required | Upload document |
+| GET | `/api/v1/documents/` | Required | List user documents |
 | POST | `/api/v1/search/` | Required | Search document chunks |
 | POST | `/api/v1/chat/` | Required | Ask questions using RAG |
 
-Protected endpoints require:
+Protected endpoints require a valid access token:
 
 ```http
 Authorization: Bearer <ACCESS_TOKEN>
 ```
 
-### Login
+### Authentication
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/auth/login \
@@ -410,7 +608,7 @@ curl -X POST http://localhost:8000/api/v1/auth/login \
   }'
 ```
 
-### Upload a document
+### Upload a Document
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/documents/upload \
@@ -418,14 +616,14 @@ curl -X POST http://localhost:8000/api/v1/documents/upload \
   -F "file=@./example.pdf"
 ```
 
-### List documents
+### List Documents
 
 ```bash
 curl http://localhost:8000/api/v1/documents/ \
   -H "Authorization: Bearer $ACCESS_TOKEN"
 ```
 
-### Search documents
+### Semantic Search
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/search/ \
@@ -437,7 +635,7 @@ curl -X POST http://localhost:8000/api/v1/search/ \
   }'
 ```
 
-### Chat with documents
+### Chat with Your Documents
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/chat/ \
@@ -449,45 +647,55 @@ curl -X POST http://localhost:8000/api/v1/chat/ \
   }'
 ```
 
-## Data Storage Design
+---
 
-### DynamoDB
+## 🗄️ Data Storage Design
 
-Document metadata uses a composite key:
+DocuMind AI separates document storage, metadata management, and vector indexing.
 
-| Attribute | Key type |
+### 1. DynamoDB Metadata
+
+Document metadata uses a composite primary key.
+
+| Attribute | Key Type |
 |---|---|
-| `user_id` | Partition key |
-| `document_id` | Sort key |
+| `user_id` | Partition Key |
+| `document_id` | Sort Key |
 
-Metadata includes:
+Stored metadata includes:
 
-- Filename
-- Content type
-- Size in bytes
-- Processing status
-- S3 bucket and object key
-- Creation and update timestamps
-- Chunk count
-- Processing error information, when applicable
+- Filename.
+- Content type.
+- File size in bytes.
+- Processing status.
+- S3 bucket and object key.
+- Creation and update timestamps.
+- Number of generated chunks.
+- Processing error information, when applicable.
 
-### S3 Object Structure
+### 2. S3 Object Structure
 
-Original documents:
-
-```text
-incoming/{user_id}/{document_id}/{filename}
-```
-
-Extracted text:
+Original uploaded documents:
 
 ```text
-processed/{user_id}/{document_id}/extracted.txt
+incoming/
+└── {user_id}/
+    └── {document_id}/
+        └── {filename}
 ```
 
-### OpenSearch
+Extracted document text:
 
-Vector index:
+```text
+processed/
+└── {user_id}/
+    └── {document_id}/
+        └── extracted.txt
+```
+
+### 3. OpenSearch Vector Index
+
+Index:
 
 ```text
 documind-chunks
@@ -495,88 +703,132 @@ documind-chunks
 
 Embedding configuration:
 
-```text
-Model: all-MiniLM-L6-v2
-Dimensions: 384
-```
+| Parameter | Value |
+|---|---|
+| Embedding Model | all-MiniLM-L6-v2 |
+| Vector Dimensions | 384 |
+| Vector Database | OpenSearch |
+| Retrieval Strategy | Semantic Vector Search |
 
-## Security and Multi-Tenancy
+---
 
-Security is built into the backend architecture.
+## 🔐 Security and Multi-Tenancy
+
+Security is an important part of the application architecture.
+
+DocuMind AI implements user-scoped access controls to ensure that document operations are associated with the authenticated user.
+
+### Authentication and Authorization
 
 - JWT authentication using Cognito-compatible access tokens.
 - RS256 signature verification.
 - JWT issuer and token-claim validation.
 - User identity derived from the verified token subject (`sub`).
 - User-scoped document access and retrieval.
-- No reliance on browser-supplied user IDs for authorization.
-- Upload validation for file extension, content type, structure, and size.
+- Authorization does not rely on browser-supplied user IDs.
+
+### Document Security
+
+- File extension validation.
+- Content-type validation.
+- Document structure validation.
+- File size validation.
+- Original document storage in S3-compatible object storage.
 - Environment files and local infrastructure state excluded from Git.
 
-The current frontend stores the access token in browser `sessionStorage`. For production, a hardened session strategy such as a backend-for-frontend with secure, HTTP-only cookies should be evaluated.
+### Production Security Considerations
 
-For AWS production deployment, use IAM roles, least-privilege policies, Secrets Manager, HTTPS, and private networking. Do not expose Floci, OpenSearch, Ollama, or administrative services directly to the public internet.
+The current frontend stores the access token in browser `sessionStorage`.
 
-## Current Limitations
+For production, a hardened session architecture, such as a Backend-for-Frontend (BFF) with secure, HTTP-only cookies, should be evaluated.
 
-The current implementation is a local Docker MVP.
+Additional production controls include:
 
-- Local AWS-compatible services are provided through Floci.
-- OpenSearch is currently provisioned in the local environment.
-- Ollama is used for local LLM inference.
-- PDF and DOCX are the supported document upload formats.
-- Public AWS infrastructure has not yet been deployed.
-- Production IAM, networking, TLS, DNS, monitoring, and secret management remain to be implemented.
-- RAG answer quality depends on document extraction, retrieval relevance, and model capabilities.
+- IAM roles and least-privilege permissions.
+- AWS Secrets Manager for sensitive configuration.
+- HTTPS and TLS termination.
+- Private networking for internal services.
+- Restricted access to OpenSearch and administrative endpoints.
+- Production logging, monitoring, and alerting.
 
-## Roadmap
+Floci, OpenSearch, Ollama, and administrative services should not be exposed directly to the public internet.
 
-### Completed
+---
 
-- [x] React + TypeScript dashboard
-- [x] Cognito-compatible authentication
-- [x] JWT-protected API routes
-- [x] Multi-tenant document access
-- [x] PDF and DOCX document upload
-- [x] S3-compatible document storage
-- [x] SQS-based asynchronous processing
-- [x] Document extraction and chunking
-- [x] Sentence Transformer embeddings
-- [x] OpenSearch vector indexing
-- [x] DynamoDB metadata management
-- [x] RAG question answering
-- [x] Retrieved source display
-- [x] Dockerized frontend, backend, and worker
+## 📊 Project Status
 
-### Planned: AWS Production Deployment
+<details>
+<summary><strong>Implemented — Local Docker MVP</strong></summary>
 
-- [ ] Production Terraform configuration
-- [ ] Amazon ECR image publishing
-- [ ] Amazon ECS Fargate deployment
-- [ ] Production Amazon Cognito configuration
-- [ ] Amazon S3 and SQS production resources
-- [ ] DynamoDB production table configuration
-- [ ] Amazon OpenSearch deployment
-- [ ] Amazon Bedrock integration
-- [ ] Application Load Balancer
-- [ ] Amazon CloudFront
-- [ ] HTTPS and custom domain
-- [ ] IAM least-privilege roles
-- [ ] AWS Secrets Manager integration
-- [ ] GitHub Actions CI/CD
-- [ ] Prometheus/Grafana or AWS-native monitoring
-- [ ] Production logging, alerting, backup, and recovery
+- [✅] React + TypeScript frontend.
+- [✅] Cognito-compatible authentication.
+- [✅] JWT-protected API routes.
+- [✅] Multi-tenant document access.
+- [✅] PDF and DOCX document uploads.
+- [✅] S3-compatible document storage.
+- [✅] SQS-based asynchronous processing.
+- [✅] Document extraction and chunking.
+- [✅] Sentence Transformer embeddings.
+- [✅] OpenSearch vector indexing.
+- [✅] DynamoDB metadata management.
+- [✅] RAG-powered question answering.
+- [✅] Retrieved source references.
+- [✅] Dockerized frontend, backend, and worker.
 
-## Troubleshooting
+</details>
 
-### Frontend loads but API requests fail
+<details>
+<summary><strong>Planned — AWS Production Deployment</strong></summary>
+
+- [ ] Production Terraform configuration.
+- [ ] Amazon ECR image publishing.
+- [ ] Amazon ECS Fargate deployment.
+- [ ] Production Amazon Cognito configuration.
+- [ ] Amazon S3 and SQS production resources.
+- [ ] DynamoDB production table configuration.
+- [ ] Amazon OpenSearch deployment.
+- [ ] Amazon Bedrock integration.
+- [ ] Application Load Balancer.
+- [ ] Amazon CloudFront.
+- [ ] HTTPS and custom domain.
+- [ ] IAM least-privilege roles.
+- [ ] AWS Secrets Manager integration.
+- [ ] GitHub Actions CI/CD.
+- [ ] Prometheus/Grafana or AWS-native monitoring.
+- [ ] Production logging, alerting, backup, and recovery.
+
+</details>
+
+---
+
+## 🗺️ Future Enhancements
+
+Potential improvements for subsequent iterations:
+
+| Area | Planned Enhancement |
+|---|---|
+| Document Support | Additional document formats |
+| Retrieval | Hybrid search and reranking |
+| AI Quality | Improved citation validation |
+| Collaboration | Document-level permissions and sharing |
+| Conversations | Persistent chat history and sessions |
+| User Experience | Document previews and downloads |
+| Analytics | User-level usage analytics |
+| Lifecycle | Document deletion and lifecycle management |
+| Observability | Production-grade monitoring and cost controls |
+
+---
+
+## 🧯 Troubleshooting
+
+### Frontend Loads but API Requests Fail
 
 - Check backend container health.
 - Inspect `docker compose logs -f backend`.
 - Verify Nginx proxies `/api/` to `backend:8000`.
 - Access the application through `http://localhost:8080`.
 
-### Cognito login fails
+### Cognito Login Fails
 
 - Confirm Floci is running.
 - Verify the user pool ID and application client ID.
@@ -584,7 +836,7 @@ The current implementation is a local Docker MVP.
 - Verify the app client supports `USER_PASSWORD_AUTH`.
 - Inspect backend logs without exposing credentials.
 
-### Documents remain in Processing
+### Documents Remain in Processing
 
 - Inspect worker logs.
 - Verify S3 bucket notifications.
@@ -592,7 +844,7 @@ The current implementation is a local Docker MVP.
 - Check DynamoDB document status.
 - Confirm OpenSearch connectivity.
 
-### OpenSearch connectivity fails
+### OpenSearch Connectivity Fails
 
 The Docker Compose configuration expects the local OpenSearch service to be accessible from containers through:
 
@@ -600,50 +852,70 @@ The Docker Compose configuration expects the local OpenSearch service to be acce
 host.docker.internal:9400
 ```
 
-Confirm the OpenSearch container is running and reachable.
+Confirm that OpenSearch is running and reachable.
 
-### AI Assistant returns poor answers
+### AI Assistant Returns Poor Answers
 
-- Verify the document is indexed.
+- Verify that the document has been indexed.
 - Check whether extracted text is correct.
 - Review retrieved source passages.
 - Verify Ollama is running.
 - Confirm that the configured model is available.
 
-## Future Enhancements
+---
 
-Potential future improvements include:
+## 🤝 Contributing
 
-- Support for additional document formats.
-- Document-level permissions and sharing.
-- Advanced hybrid search and reranking.
-- Improved citation validation.
-- Conversation history and persistent chat sessions.
-- Document previews and downloads.
-- User-level usage analytics.
-- Document deletion and lifecycle management.
-- Production-grade observability and cost controls.
+Contributions, suggestions, and issue reports are welcome.
 
-## Contributing
-
-Contributions and issue reports are welcome.
+To contribute:
 
 1. Fork the repository.
 2. Create a feature branch.
-3. Make focused changes.
+3. Implement your changes.
 4. Add or update tests where appropriate.
-5. Open a pull request describing the changes.
+5. Submit a pull request explaining your changes.
 
-Never commit secrets, `.env` files, Terraform state, local model caches, or generated runtime data.
+Please do not commit:
 
-## License
+- `.env` files.
+- Credentials or API keys.
+- Terraform state files.
+- Local model caches.
+- Generated runtime data.
 
-No license has been added yet. Until a license is included, the project remains subject to the default copyright rules. Do not assume it is freely reusable.
+---
+
+## 📜 License
+
+No license has been added yet.
+
+Until a license is included, the project remains subject to default copyright rules. Do not assume that it is freely reusable.
+
+---
+
+## 👨‍💻 Author
+
+**Ayaan Shaheer**
+
+Software Engineer | MLOps | GenAI Infrastructure | Cloud-Native Systems
+
+Building systems at the intersection of AI engineering, cloud infrastructure, and platform engineering.
+
+<p align="left">
+  <a href="https://github.com/AyaanShaheer">
+    <img src="https://img.shields.io/badge/GitHub-AyaanShaheer-181717?style=for-the-badge&logo=github" />
+  </a>
+</p>
 
 ---
 
 <p align="center">
-  **DocuMind AI**
-  
-  *From document storage to source-grounded answers.*
+
+### 🧠 DocuMind AI
+
+**From document storage to source-grounded intelligence.**
+
+*Built with Python, React, AWS architecture, and Generative AI.*
+
 </p>
