@@ -16,3 +16,20 @@ class DocumentUploadResponse(BaseModel):
     s3_key: str
 
     created_at: str
+
+
+class DocumentListItem(BaseModel):
+    document_id: str
+    filename: str
+    content_type: str
+    size_bytes: int
+    status: str
+    created_at: str
+    updated_at: str | None = None
+    chunk_count: int = 0
+    error_message: str | None = None
+
+
+class DocumentListResponse(BaseModel):
+    total: int
+    documents: list[DocumentListItem]

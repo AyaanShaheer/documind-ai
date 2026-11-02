@@ -267,3 +267,54 @@ def persist_document(
         "created_at": created_at,
     }
 
+
+
+def list_user_documents(user_id: str) -> list[dict]:
+    """Return documents belonging only to the authenticated user."""
+
+    from boto3.dynamodb.conditions import Key
+
+    dynamodb = get_dynamodb_resource()
+    table = dynamodb.Table(settings.dynamodb_table_name)
+
+    try:
+        items = []
+        query_args = {
+            "KeyConditionExpression": Key("user_id").eq(user_id),
+        }
+
+        while True:
+            response = table.query(**query_args)
+            items.extend(response.get("Items", []))
+
+            last_key = response.get("LastEvaluatedKey")
+            if not last_key:
+                break
+
+            query_args["ExclusiveStartKey"] = last_key
+
+        items.sort(
+            key=lambda item: item.get("created_at", ""),
+            reverse=True,
+        )
+
+        return [
+            {
+                "document_id": item["document_id"],
+                "filename": item.get("filename", "Untitled"),
+                "content_type": item.get("content_type", ""),
+                "size_bytes": int(item.get("size_bytes", 0)),
+                "status": item.get("status", "UPLOADING"),
+                "created_at": item.get("created_at", ""),
+                "updated_at": item.get("updated_at"),
+                "chunk_count": int(item.get("chunk_count", 0)),
+                "error_message": item.get("error_message"),
+            }
+            for item in items
+        ]
+
+    except (BotoCoreError, ClientError) as exc:
+        logger.exception("Could not list user documents")
+        raise DocumentStorageError(
+            "Unable to retrieve document metadata"
+        ) from exc

@@ -16,10 +16,11 @@ from fastapi import (
 
 from app.core.auth import get_current_user_id
 from app.core.config import settings
-from app.schemas.document import DocumentUploadResponse
+from app.schemas.document import DocumentUploadResponse, DocumentListResponse
 from app.services.document_service import (
     DocumentStorageError,
     persist_document,
+    list_user_documents,
 )
 
 
@@ -160,4 +161,25 @@ async def upload_document(
         raise HTTPException(
             status_code=502,
             detail="Document storage operation failed",
+        ) from exc
+
+
+@router.get("/", response_model=DocumentListResponse)
+def get_documents(
+    user_id: str = Depends(get_current_user_id),
+):
+    try:
+        documents = list_user_documents(user_id)
+
+        return {
+            "total": len(documents),
+            "documents": documents,
+        }
+
+    except DocumentStorageError as exc:
+        logger.exception("Document listing failed")
+
+        raise HTTPException(
+            status_code=502,
+            detail="Unable to retrieve documents",
         ) from exc
